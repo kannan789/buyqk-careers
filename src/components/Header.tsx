@@ -9,9 +9,14 @@ import {
   Menu, 
   X,
   HelpCircle,
-  Building2
+  Building2,
+  User,
+  ShieldCheck,
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import { LOCATIONS } from '../data/jobsData';
+import { UserAccount } from '../types';
 
 interface HeaderProps {
   selectedLocation: string;
@@ -23,6 +28,10 @@ interface HeaderProps {
   applicationsCount: number;
   activeTab: 'openings' | 'culture' | 'faqs';
   setActiveTab: (tab: 'openings' | 'culture' | 'faqs') => void;
+  currentUser: UserAccount | null;
+  onOpenAuth: (mode?: 'login' | 'register' | 'admin') => void;
+  onOpenAdminPanel: () => void;
+  onLogout: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -34,7 +43,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenTracker,
   applicationsCount,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  currentUser,
+  onOpenAuth,
+  onOpenAdminPanel,
+  onLogout
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -99,6 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Pill Buttons */}
           <div className="flex items-center gap-2 sm:gap-3">
+            
             {/* Ask QK AI Role Matcher Button */}
             <button
               onClick={onOpenAiMatcher}
@@ -107,25 +121,66 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-pulse" />
               <span>Ask QK AI ✨</span>
-              <span className="hidden sm:inline-block text-[10px] font-normal text-purple-100 bg-black/20 px-1.5 py-0.2 rounded-full">
-                Match CV
-              </span>
             </button>
 
-            {/* My Applications Tracker Button */}
-            <button
-              onClick={onOpenTracker}
-              className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141C2E] border border-[#2A364F] text-slate-200 hover:text-white hover:border-[#FF6B00]/60 text-xs font-medium transition-all"
-              id="my-applications-btn"
-            >
-              <FileCheck className="w-3.5 h-3.5 text-[#FF6B00]" />
-              <span className="hidden sm:inline">My Applications</span>
-              {applicationsCount > 0 && (
-                <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#FF6B00] text-white rounded-full">
-                  {applicationsCount}
-                </span>
-              )}
-            </button>
+            {/* User Auth Status / Create Account / Login Button */}
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                {currentUser.role === 'admin' ? (
+                  <button
+                    onClick={onOpenAdminPanel}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/50 text-xs font-bold transition-all"
+                    id="open-admin-panel-btn"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Admin Panel</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={onOpenTracker}
+                    className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141C2E] border border-emerald-500/50 text-emerald-300 text-xs font-bold transition-all"
+                    id="my-applications-btn"
+                  >
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="max-w-[100px] truncate">{currentUser.fullName}</span>
+                    {applicationsCount > 0 && (
+                      <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#FF6B00] text-white rounded-full">
+                        {applicationsCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                <button
+                  onClick={onLogout}
+                  title="Log Out"
+                  className="p-1.5 rounded-full bg-[#141C2E] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-[#2A364F] transition-colors"
+                  id="logout-btn"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => onOpenAuth('register')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF6B00] hover:bg-[#FF7A00] text-white text-xs font-bold shadow-md transition-all"
+                  id="create-account-header-btn"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Create Account / Login</span>
+                </button>
+
+                <button
+                  onClick={() => onOpenAuth('admin')}
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#141C2E] hover:bg-[#1E293B] border border-purple-500/40 text-purple-300 text-xs font-semibold"
+                  id="admin-login-header-btn"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Admin</span>
+                </button>
+              </div>
+            )}
 
             {/* Mobile Hamburger Menu Toggle */}
             <button
@@ -252,3 +307,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+

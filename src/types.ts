@@ -2,6 +2,27 @@ export type WorkMode = 'Virtual / WFH' | 'On-site' | 'Hybrid';
 export type ShiftType = 'Day Shift' | 'Rotational (24/7)' | 'Night Shift';
 export type ExperienceLevel = 'Fresher (0 yrs)' | '1 - 3 Yrs' | '3 - 5 Yrs' | '5+ Yrs';
 
+export interface UserAccount {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  role: 'candidate' | 'admin';
+  city: string;
+  state: string;
+  pinCode: string;
+  highestQualification: string;
+  experienceYears: string;
+  currentCompany?: string;
+  skills: string[];
+  preferredShift: string;
+  preferredLocation: string;
+  hasLaptopAndWifi: boolean;
+  resumeFileName?: string;
+  resumeText?: string;
+  createdAt: string;
+}
+
 export interface JobOpening {
   id: string;
   reqId: string;
@@ -30,6 +51,7 @@ export interface JobOpening {
 export interface JobApplication {
   id: string;
   regId: string;
+  candidateId?: string;
   jobId: string;
   jobTitle: string;
   reqId: string;
@@ -52,7 +74,8 @@ export interface JobApplication {
   expectedCtc?: string;
   resumeFileName: string;
   resumeText?: string;
-  status: 'Submitted' | 'Resume Screened' | 'Virtual Assessment' | 'Interview Scheduled' | 'Offer Extended';
+  status: 'Submitted' | 'Resume Screened' | 'Virtual Assessment' | 'Interview Scheduled' | 'Offer Extended' | 'Rejected';
+  recruiterNotes?: string;
   appliedAt: string;
 }
 
@@ -73,3 +96,4 @@ export interface AiMatchResult {
   recommendationReason: string;
   missingSkills?: string[];
 }
+

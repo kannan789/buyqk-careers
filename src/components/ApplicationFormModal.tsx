@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Upload, 
@@ -16,45 +16,63 @@ import {
   Clock,
   Send
 } from 'lucide-react';
-import { JobOpening, JobApplication } from '../types';
+import { JobOpening, JobApplication, UserAccount } from '../types';
 
 interface ApplicationFormModalProps {
   job: JobOpening | null;
+  currentUser?: UserAccount | null;
   onClose: () => void;
   onSuccess: (application: JobApplication) => void;
 }
 
 export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   job,
+  currentUser,
   onClose,
   onSuccess
 }) => {
   if (!job) return null;
 
   // Form State
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [city, setCity] = useState(job.location !== 'Remote / WFH' ? job.location : 'Kolkata');
+  const [fullName, setFullName] = useState(currentUser?.fullName || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [phone, setPhone] = useState(currentUser?.phone || '');
+  const [city, setCity] = useState(currentUser?.city || (job.location !== 'Remote / WFH' ? job.location : 'Kolkata'));
   const [pinCode, setPinCode] = useState('');
   const [gender, setGender] = useState('Male');
-  const [qualification, setQualification] = useState(job.education.includes('Graduate') ? 'Graduate / Bachelor Degree' : 'Post Graduate');
-  const [experienceYears, setExperienceYears] = useState(job.experience);
-  const [currentCompany, setCurrentCompany] = useState('');
-  const [skills, setSkills] = useState(job.department.includes('Trust') ? 'Customer Communication, Hindi, English, Typing Speed' : 'Problem Solving, Teamwork');
-  const [preferredShift, setPreferredShift] = useState(job.shiftType);
+  const [qualification, setQualification] = useState(currentUser?.highestQualification || (job.education.includes('Graduate') ? 'Graduate / Bachelor Degree' : 'Post Graduate'));
+  const [experienceYears, setExperienceYears] = useState(currentUser?.experienceYears || job.experience);
+  const [currentCompany, setCurrentCompany] = useState(currentUser?.currentCompany || '');
+  const [skills, setSkills] = useState(currentUser?.skills?.join(', ') || (job.department.includes('Trust') ? 'Customer Communication, Hindi, English, Typing Speed' : 'Problem Solving, Teamwork'));
+  const [preferredShift, setPreferredShift] = useState(currentUser?.preferredShift || job.shiftType);
   const [preferredLocation, setPreferredLocation] = useState(job.location);
-  const [hasLaptopAndWifi, setHasLaptopAndWifi] = useState(true);
+  const [hasLaptopAndWifi, setHasLaptopAndWifi] = useState(currentUser?.hasLaptopAndWifi ?? true);
   const [noticePeriod, setNoticePeriod] = useState('Immediate Joiner (Within 7 Days)');
   const [expectedCtc, setExpectedCtc] = useState('');
   
   // Resume upload state
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeFileName, setResumeFileName] = useState('My_Updated_CV.pdf');
-  const [resumeText, setResumeText] = useState('');
+  const [resumeFileName, setResumeFileName] = useState(currentUser?.resumeFileName || 'My_Updated_CV.pdf');
+  const [resumeText, setResumeText] = useState(currentUser?.resumeText || '');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Sync if currentUser updates
+  useEffect(() => {
+    if (currentUser) {
+      if (currentUser.fullName) setFullName(currentUser.fullName);
+      if (currentUser.email) setEmail(currentUser.email);
+      if (currentUser.phone) setPhone(currentUser.phone);
+      if (currentUser.city) setCity(currentUser.city);
+      if (currentUser.highestQualification) setQualification(currentUser.highestQualification);
+      if (currentUser.experienceYears) setExperienceYears(currentUser.experienceYears);
+      if (currentUser.skills?.length) setSkills(currentUser.skills.join(', '));
+      if (currentUser.preferredShift) setPreferredShift(currentUser.preferredShift);
+      if (currentUser.resumeFileName) setResumeFileName(currentUser.resumeFileName);
+      if (currentUser.resumeText) setResumeText(currentUser.resumeText);
+    }
+  }, [currentUser]);
 
   // Handle simulated file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

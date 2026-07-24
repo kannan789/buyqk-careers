@@ -24,11 +24,13 @@ import { ApplicationFormModal } from './components/ApplicationFormModal';
 import { ApplicationSuccessModal } from './components/ApplicationSuccessModal';
 import { MyApplicationsModal } from './components/MyApplicationsModal';
 import { AiResumeMatcherModal } from './components/AiResumeMatcherModal';
+import { AuthModal } from './components/AuthModal';
+import { AdminPanelModal } from './components/AdminPanelModal';
 import { FaqSection } from './components/FaqSection';
 import { Footer } from './components/Footer';
 
 import { INITIAL_JOBS } from './data/jobsData';
-import { JobOpening, JobApplication, FilterState } from './types';
+import { JobOpening, JobApplication, FilterState, UserAccount } from './types';
 
 export default function App() {
   const [jobs, setJobs] = useState<JobOpening[]>(INITIAL_JOBS);
@@ -42,6 +44,15 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState<'openings' | 'culture' | 'faqs'>('openings');
+
+  // User Auth State
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register' | 'admin'>('register');
+  const [pendingJobToApply, setPendingJobToApply] = useState<JobOpening | null>(null);
+
+  // Admin Dashboard State
+  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
 
   // Modals state
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<JobOpening | null>(null);
@@ -61,8 +72,8 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Fetch jobs and stored applications on mount
-  useEffect(() => {
+  // Fetch jobs function
+  const fetchJobs = () => {
     fetch('/api/careers/jobs')
       .then(res => res.json())
       .then(data => {
@@ -73,6 +84,11 @@ export default function App() {
       .catch(() => {
         setJobs(INITIAL_JOBS);
       });
+  };
+
+  // Fetch jobs and stored applications on mount
+  useEffect(() => {
+    fetchJobs();
 
     fetch('/api/careers/applications')
       .then(res => res.json())
@@ -83,6 +99,42 @@ export default function App() {
       })
       .catch(() => {});
   }, []);
+
+  // Handle Apply Now click across all components
+  const handleApplyNow = (job: JobOpening) => {
+    if (!currentUser) {
+      // User is NOT logged in -> Redirect to Create Account / Login Modal
+      setPendingJobToApply(job);
+      setAuthInitialMode('register');
+      setIsAuthModalOpen(true);
+      showToast('Please Create an Account or Log In to apply.');
+    } else {
+      // User IS logged in -> Open Application Form with pre-filled candidate profile
+      setSelectedJobForApply(job);
+    }
+  };
+
+  // Handle successful auth
+  const handleAuthSuccess = (user: UserAccount, targetJob?: JobOpening | null) => {
+    setCurrentUser(user);
+    if (user.role === 'admin') {
+      showToast(`Welcome Recruiter Admin (${user.fullName})`);
+      setIsAdminPanelOpen(true);
+    } else {
+      showToast(`Welcome, ${user.fullName}! Account Active.`);
+      if (targetJob) {
+        // Open pre-filled apply modal
+        setSelectedJobForApply(targetJob);
+        setPendingJobToApply(null);
+      }
+    }
+  };
+
+  // Logout handler
+  const handleLogout = () => {
+    setCurrentUser(null);
+    showToast('Logged out successfully.');
+  };
 
   // Filter handlers
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -206,6 +258,14 @@ export default function App() {
         applicationsCount={myApplications.length}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        currentUser={currentUser}
+        onOpenAuth={(mode) => {
+          setAuthInitialMode(mode || 'register');
+          setPendingJobToApply(null);
+          setIsAuthModalOpen(true);
+        }}
+        onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -268,7 +328,7 @@ export default function App() {
                       key={job.id}
                       job={job}
                       onViewDetails={(j) => setSelectedJobForDetails(j)}
-                      onApply={(j) => setSelectedJobForApply(j)}
+                      onApply={(j) => handleApplyNow(j)}
                     />
                   ))}
                 </div>
@@ -359,15 +419,33 @@ export default function App() {
 
       </main>
 
-      {/* Modals Collection */}
+      {/* Auth Modal (Create Account / Login / Admin Login) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthSuccess={handleAuthSuccess}
+        pendingJobToApply={pendingJobToApply}
+        initialMode={authInitialMode}
+      />
+
+      {/* Admin Control Panel Modal */}
+      <AdminPanelModal
+        isOpen={isAdminPanelOpen}
+        onClose={() => setIsAdminPanelOpen(false)}
+        jobs={jobs}
+        onJobsUpdated={fetchJobs}
+      />
+
+      {/* Job Modals Collection */}
       <JobDetailsModal
         job={selectedJobForDetails}
         onClose={() => setSelectedJobForDetails(null)}
-        onApply={(j) => setSelectedJobForApply(j)}
+        onApply={(j) => handleApplyNow(j)}
       />
 
       <ApplicationFormModal
         job={selectedJobForApply}
+        currentUser={currentUser}
         onClose={() => setSelectedJobForApply(null)}
         onSuccess={handleApplicationSuccess}
       />
@@ -394,7 +472,7 @@ export default function App() {
         isOpen={isAiMatcherOpen}
         onClose={() => setIsAiMatcherOpen(false)}
         jobs={jobs}
-        onSelectRoleToApply={(j) => setSelectedJobForApply(j)}
+        onSelectRoleToApply={(j) => handleApplyNow(j)}
       />
 
       {/* Footer */}
@@ -403,3 +481,4 @@ export default function App() {
     </div>
   );
 }
+
