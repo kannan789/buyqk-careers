@@ -1,0 +1,6 @@
+{
+  "name": "BuyQK Careers Portal",
+  "description": "Front-end careers and virtual hiring portal for BuyQK featuring job category filtering, detailed requisition cards, interactive web application forms, resume parsing, and application status tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
