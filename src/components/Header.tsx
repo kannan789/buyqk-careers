@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   MapPin, 
   Search, 
-  Sparkles, 
   Briefcase, 
   FileCheck, 
   ChevronDown, 
@@ -23,14 +22,13 @@ interface HeaderProps {
   onSelectLocation: (loc: string) => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  onOpenAiMatcher: () => void;
   onOpenTracker: () => void;
   applicationsCount: number;
   activeTab: 'openings' | 'culture' | 'faqs';
   setActiveTab: (tab: 'openings' | 'culture' | 'faqs') => void;
   currentUser: UserAccount | null;
-  onOpenAuth: (mode?: 'login' | 'register' | 'admin') => void;
-  onOpenAdminPanel: () => void;
+  onNavigateAuth: (mode?: 'login' | 'register' | 'admin') => void;
+  onNavigateAdminPanel: () => void;
   onLogout: () => void;
 }
 
@@ -39,14 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectLocation,
   searchQuery,
   onSearchChange,
-  onOpenAiMatcher,
   onOpenTracker,
   applicationsCount,
   activeTab,
   setActiveTab,
   currentUser,
-  onOpenAuth,
-  onOpenAdminPanel,
+  onNavigateAuth,
+  onNavigateAdminPanel,
   onLogout
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -59,11 +56,14 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Logo & Location Header */}
           <div className="flex items-center gap-6">
-            <a href="#" className="flex items-center gap-2 group">
+            <button 
+              onClick={() => setActiveTab('openings')} 
+              className="flex items-center gap-2 text-left group"
+            >
               <div className="flex flex-col">
                 <div className="flex items-center text-2xl font-black tracking-tight font-sans">
                   <span className="text-white">Buy</span>
-                  <span className="text-[#FF6B00] italic font-serif ml-0.5 tracking-wide drop-shadow-[0_0_10px_rgba(255,107,0,0.4)]">
+                  <span className="text-[#FF6B00] italic font-serif ml-0.5 tracking-wide">
                     QK
                   </span>
                 </div>
@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 uppercase ml-2">
                 Careers
               </span>
-            </a>
+            </button>
 
             {/* Location Selector Badge */}
             <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141C2E] border border-[#2A364F] text-xs text-slate-300 hover:border-[#FF6B00]/50 transition-colors cursor-pointer group">
@@ -110,30 +110,19 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Action Pill Buttons */}
+          {/* Auth / Account Navigation Bar */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* Ask QK AI Role Matcher Button */}
-            <button
-              onClick={onOpenAiMatcher}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white text-xs font-bold shadow-md hover:shadow-purple-500/25 transition-all hover:scale-105 active:scale-95"
-              id="ask-qk-ai-btn"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-200 animate-pulse" />
-              <span>Ask QK AI ✨</span>
-            </button>
-
-            {/* User Auth Status / Create Account / Login Button */}
             {currentUser ? (
               <div className="flex items-center gap-2">
                 {currentUser.role === 'admin' ? (
                   <button
-                    onClick={onOpenAdminPanel}
+                    onClick={onNavigateAdminPanel}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/50 text-xs font-bold transition-all"
                     id="open-admin-panel-btn"
                   >
                     <ShieldCheck className="w-3.5 h-3.5" />
-                    <span>Admin Panel</span>
+                    <span>Recruiter Admin Panel</span>
                   </button>
                 ) : (
                   <button
@@ -142,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
                     id="my-applications-btn"
                   >
                     <User className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="max-w-[100px] truncate">{currentUser.fullName}</span>
+                    <span className="max-w-[120px] truncate">{currentUser.fullName}</span>
                     {applicationsCount > 0 && (
                       <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#FF6B00] text-white rounded-full">
                         {applicationsCount}
@@ -161,23 +150,31 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
-                  onClick={() => onOpenAuth('register')}
+                  onClick={() => onNavigateAuth('login')}
+                  className="px-3 py-1.5 rounded-full bg-[#141C2E] hover:bg-[#1E293B] border border-[#2A364F] text-slate-200 text-xs font-semibold transition-all"
+                  id="login-header-btn"
+                >
+                  Log In
+                </button>
+
+                <button
+                  onClick={() => onNavigateAuth('register')}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF6B00] hover:bg-[#FF7A00] text-white text-xs font-bold shadow-md transition-all"
                   id="create-account-header-btn"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>Create Account / Login</span>
+                  <span>Create Account</span>
                 </button>
 
                 <button
-                  onClick={() => onOpenAuth('admin')}
+                  onClick={() => onNavigateAuth('admin')}
                   className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#141C2E] hover:bg-[#1E293B] border border-purple-500/40 text-purple-300 text-xs font-semibold"
                   id="admin-login-header-btn"
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Admin</span>
+                  <span>Recruiter Login</span>
                 </button>
               </div>
             )}
@@ -282,17 +279,6 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
               onClick={() => {
-                onOpenAiMatcher();
-                setIsMobileMenuOpen(false);
-              }}
-              className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg bg-purple-950/60 border border-purple-500/40 text-purple-200 text-xs font-semibold"
-            >
-              <Sparkles className="w-4 h-4 text-purple-400" />
-              <span>AI Resume Matcher</span>
-            </button>
-
-            <button
-              onClick={() => {
                 onOpenTracker();
                 setIsMobileMenuOpen(false);
               }}
@@ -301,10 +287,22 @@ export const Header: React.FC<HeaderProps> = ({
               <FileCheck className="w-4 h-4 text-[#FF6B00]" />
               <span>Track Applications</span>
             </button>
+
+            {!currentUser && (
+              <button
+                onClick={() => {
+                  onNavigateAuth('register');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg bg-[#FF6B00] text-white text-xs font-semibold"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create Account</span>
+              </button>
+            )}
           </div>
         </div>
       )}
     </header>
   );
 };
-

@@ -6,18 +6,18 @@ export interface UserAccount {
   id: string;
   email: string;
   fullName: string;
-  phone: string;
+  phone?: string;
   role: 'candidate' | 'admin';
-  city: string;
-  state: string;
-  pinCode: string;
-  highestQualification: string;
-  experienceYears: string;
+  city?: string;
+  state?: string;
+  pinCode?: string;
+  highestQualification?: string;
+  experienceYears?: string;
   currentCompany?: string;
-  skills: string[];
-  preferredShift: string;
-  preferredLocation: string;
-  hasLaptopAndWifi: boolean;
+  skills?: string[];
+  preferredShift?: string;
+  preferredLocation?: string;
+  hasLaptopAndWifi?: boolean;
   resumeFileName?: string;
   resumeText?: string;
   createdAt: string;
@@ -87,13 +87,3 @@ export interface FilterState {
   workMode: string;
   shiftType: string;
 }
-
-export interface AiMatchResult {
-  jobId: string;
-  jobTitle: string;
-  matchScore: number;
-  matchingSkills: string[];
-  recommendationReason: string;
-  missingSkills?: string[];
-}
-

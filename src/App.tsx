@@ -1,18 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, 
-  Briefcase, 
   CheckCircle2, 
-  Sparkles, 
-  MapPin, 
-  Building2, 
-  Users, 
   Heart, 
   Zap, 
-  ShieldCheck, 
-  ArrowRight,
-  Headphones,
-  Laptop
+  ArrowRight
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { HeroSection } from './components/HeroSection';
@@ -23,9 +15,8 @@ import { JobDetailsModal } from './components/JobDetailsModal';
 import { ApplicationFormModal } from './components/ApplicationFormModal';
 import { ApplicationSuccessModal } from './components/ApplicationSuccessModal';
 import { MyApplicationsModal } from './components/MyApplicationsModal';
-import { AiResumeMatcherModal } from './components/AiResumeMatcherModal';
-import { AuthModal } from './components/AuthModal';
-import { AdminPanelModal } from './components/AdminPanelModal';
+import { AuthPage } from './components/AuthPage';
+import { AdminPanelPage } from './components/AdminPanelPage';
 import { FaqSection } from './components/FaqSection';
 import { Footer } from './components/Footer';
 
@@ -33,7 +24,14 @@ import { INITIAL_JOBS } from './data/jobsData';
 import { JobOpening, JobApplication, FilterState, UserAccount } from './types';
 
 export default function App() {
-  const [jobs, setJobs] = useState<JobOpening[]>(INITIAL_JOBS);
+  const [jobs, setJobs] = useState<JobOpening[]>(() => {
+    const saved = localStorage.getItem('buyqk_jobs');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return INITIAL_JOBS;
+  });
+
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     department: 'All Departments',
@@ -45,24 +43,44 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<'openings' | 'culture' | 'faqs'>('openings');
 
+  // Page Navigation State ('jobs' | 'auth' | 'admin')
+  const [currentView, setCurrentView] = useState<'jobs' | 'auth' | 'admin'>('jobs');
+
   // User Auth State
-  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => {
+    const saved = localStorage.getItem('buyqk_current_user');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return null;
+  });
+
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register' | 'admin'>('register');
   const [pendingJobToApply, setPendingJobToApply] = useState<JobOpening | null>(null);
-
-  // Admin Dashboard State
-  const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
 
   // Modals state
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<JobOpening | null>(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState<JobOpening | null>(null);
   const [submittedApplication, setSubmittedApplication] = useState<JobApplication | null>(null);
-  const [isAiMatcherOpen, setIsAiMatcherOpen] = useState(false);
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
 
   // Applications tracker state
-  const [myApplications, setMyApplications] = useState<JobApplication[]>([]);
+  const [myApplications, setMyApplications] = useState<JobApplication[]>(() => {
+    const saved = localStorage.getItem('buyqk_applications');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [];
+  });
+
+  // Registered Candidates list state
+  const [candidates, setCandidates] = useState<UserAccount[]>(() => {
+    const saved = localStorage.getItem('buyqk_candidates');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [];
+  });
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -72,67 +90,70 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Fetch jobs function
-  const fetchJobs = () => {
-    fetch('/api/careers/jobs')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.jobs) {
-          setJobs(data.jobs);
-        }
-      })
-      .catch(() => {
-        setJobs(INITIAL_JOBS);
-      });
-  };
-
-  // Fetch jobs and stored applications on mount
+  // Save state updates to localStorage
   useEffect(() => {
-    fetchJobs();
+    localStorage.setItem('buyqk_jobs', JSON.stringify(jobs));
+  }, [jobs]);
 
-    fetch('/api/careers/applications')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.applications) {
-          setMyApplications(data.applications);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  useEffect(() => {
+    localStorage.setItem('buyqk_applications', JSON.stringify(myApplications));
+  }, [myApplications]);
+
+  useEffect(() => {
+    localStorage.setItem('buyqk_candidates', JSON.stringify(candidates));
+  }, [candidates]);
+
+  useEffect(() => {
+    if (currentUser) {
+      localStorage.setItem('buyqk_current_user', JSON.stringify(currentUser));
+    } else {
+      localStorage.removeItem('buyqk_current_user');
+    }
+  }, [currentUser]);
 
   // Handle Apply Now click across all components
   const handleApplyNow = (job: JobOpening) => {
     if (!currentUser) {
-      // User is NOT logged in -> Redirect to Create Account / Login Modal
+      // User is NOT logged in -> Navigate to dedicated Auth Page
       setPendingJobToApply(job);
       setAuthInitialMode('register');
-      setIsAuthModalOpen(true);
-      showToast('Please Create an Account or Log In to apply.');
+      setCurrentView('auth');
+      showToast('Please create an account or log in to submit your application.');
     } else {
-      // User IS logged in -> Open Application Form with pre-filled candidate profile
+      // User IS logged in -> Open Application Form
       setSelectedJobForApply(job);
     }
   };
 
-  // Handle successful auth
+  // Handle successful auth from AuthPage
   const handleAuthSuccess = (user: UserAccount, targetJob?: JobOpening | null) => {
     setCurrentUser(user);
+    if (user.role === 'candidate') {
+      setCandidates(prev => {
+        if (!prev.some(c => c.id === user.id || c.email === user.email)) {
+          return [user, ...prev];
+        }
+        return prev;
+      });
+    }
+
     if (user.role === 'admin') {
-      showToast(`Welcome Recruiter Admin (${user.fullName})`);
-      setIsAdminPanelOpen(true);
+      showToast(`Welcome to Recruiter Portal, ${user.fullName}`);
+      setCurrentView('admin');
     } else {
-      showToast(`Welcome, ${user.fullName}! Account Active.`);
+      showToast(`Welcome, ${user.fullName}! Your profile is ready.`);
       if (targetJob) {
-        // Open pre-filled apply modal
         setSelectedJobForApply(targetJob);
         setPendingJobToApply(null);
       }
+      setCurrentView('jobs');
     }
   };
 
   // Logout handler
   const handleLogout = () => {
     setCurrentUser(null);
+    setCurrentView('jobs');
     showToast('Logged out successfully.');
   };
 
@@ -155,7 +176,6 @@ export default function App() {
   // Compute filtered jobs
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
-      // Search query
       if (filters.searchQuery.trim()) {
         const q = filters.searchQuery.toLowerCase();
         const matchesTitle = job.title.toLowerCase().includes(q);
@@ -168,12 +188,10 @@ export default function App() {
         }
       }
 
-      // Department filter
       if (filters.department !== 'All Departments' && job.department !== filters.department) {
         return false;
       }
 
-      // Location filter
       if (filters.location !== 'All Locations') {
         if (filters.location === 'Remote / WFH') {
           if (job.workMode !== 'Virtual / WFH') return false;
@@ -182,17 +200,14 @@ export default function App() {
         }
       }
 
-      // Experience filter
       if (filters.experience !== 'All Experience Levels' && job.experience !== filters.experience) {
         return false;
       }
 
-      // Work Mode filter
       if (filters.workMode !== 'All Work Modes' && job.workMode !== filters.workMode) {
         return false;
       }
 
-      // Shift Type filter
       if (filters.shiftType !== 'All Shifts' && job.shiftType !== filters.shiftType) {
         return false;
       }
@@ -212,34 +227,71 @@ export default function App() {
     setSelectedJobForApply(null);
     setSubmittedApplication(newApp);
     setMyApplications(prev => [newApp, ...prev.filter(a => a.id !== newApp.id)]);
-    showToast(`Application submitted! Reg ID: ${newApp.regId}`);
+    showToast(`Application submitted! Registration ID: ${newApp.regId}`);
+  };
+
+  // Admin status update handler
+  const handleUpdateApplicationStatus = (appId: string, newStatus: JobApplication['status'], notes?: string) => {
+    setMyApplications(prev => prev.map(a => {
+      if (a.id === appId) {
+        return { ...a, status: newStatus, recruiterNotes: notes || a.recruiterNotes };
+      }
+      return a;
+    }));
+    showToast(`Updated application status to ${newStatus}`);
   };
 
   // Search applications handler
-  const handleSearchApplications = async (query: string) => {
-    try {
-      const res = await fetch(`/api/careers/applications?query=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      if (data.success && data.applications) {
-        setMyApplications(data.applications);
-      }
-    } catch {
-      // Local filter fallback
-      if (query.trim()) {
-        const q = query.toLowerCase();
-        setMyApplications(prev => prev.filter(a => 
-          a.email.toLowerCase().includes(q) || 
-          a.regId.toLowerCase().includes(q) ||
-          a.fullName.toLowerCase().includes(q)
-        ));
-      }
+  const handleSearchApplications = (query: string) => {
+    if (query.trim()) {
+      const q = query.toLowerCase();
+      const saved = localStorage.getItem('buyqk_applications');
+      const allApps: JobApplication[] = saved ? JSON.parse(saved) : myApplications;
+      setMyApplications(allApps.filter(a => 
+        a.email.toLowerCase().includes(q) || 
+        a.regId.toLowerCase().includes(q) ||
+        a.fullName.toLowerCase().includes(q)
+      ));
+    } else {
+      const saved = localStorage.getItem('buyqk_applications');
+      if (saved) setMyApplications(JSON.parse(saved));
     }
   };
+
+  // Render Auth Page view
+  if (currentView === 'auth') {
+    return (
+      <AuthPage
+        onBackToJobs={() => setCurrentView('jobs')}
+        onAuthSuccess={handleAuthSuccess}
+        pendingJobToApply={pendingJobToApply}
+        initialMode={authInitialMode}
+      />
+    );
+  }
+
+  // Render Admin Panel Page view
+  if (currentView === 'admin') {
+    return (
+      <AdminPanelPage
+        onBackToJobs={() => setCurrentView('jobs')}
+        jobs={jobs}
+        onJobsUpdated={() => {
+          const saved = localStorage.getItem('buyqk_jobs');
+          if (saved) setJobs(JSON.parse(saved));
+        }}
+        applications={myApplications}
+        onUpdateApplicationStatus={handleUpdateApplicationStatus}
+        candidates={candidates}
+        onLogout={handleLogout}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 font-sans flex flex-col selection:bg-[#FF6B00] selection:text-white">
       
-      {/* Toast Popup Notification */}
+      {/* Toast Notification Popup */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 bg-[#141C2E] border border-emerald-500/60 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs animate-in slide-in-from-bottom-5">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
@@ -247,24 +299,23 @@ export default function App() {
         </div>
       )}
 
-      {/* Header Bar */}
+      {/* Main Header Bar */}
       <Header
         selectedLocation={filters.location}
         onSelectLocation={(loc) => handleFilterChange('location', loc)}
         searchQuery={filters.searchQuery}
         onSearchChange={(q) => handleFilterChange('searchQuery', q)}
-        onOpenAiMatcher={() => setIsAiMatcherOpen(true)}
         onOpenTracker={() => setIsTrackerOpen(true)}
         applicationsCount={myApplications.length}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         currentUser={currentUser}
-        onOpenAuth={(mode) => {
+        onNavigateAuth={(mode) => {
           setAuthInitialMode(mode || 'register');
           setPendingJobToApply(null);
-          setIsAuthModalOpen(true);
+          setCurrentView('auth');
         }}
-        onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
+        onNavigateAdminPanel={() => setCurrentView('admin')}
         onLogout={handleLogout}
       />
 
@@ -279,7 +330,10 @@ export default function App() {
             const el = document.getElementById('openings-section');
             el?.scrollIntoView({ behavior: 'smooth' });
           }}
-          onAiMatchClick={() => setIsAiMatcherOpen(true)}
+          onCreateAccountClick={() => {
+            setAuthInitialMode('register');
+            setCurrentView('auth');
+          }}
         />
 
         {/* Tab 1: Job Openings View */}
@@ -315,7 +369,7 @@ export default function App() {
                   </p>
                   <button
                     onClick={handleResetFilters}
-                    className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#FF7A00] text-white text-xs font-bold transition-all shadow-md"
+                    className="px-5 py-2.5 rounded-xl bg-[#FF6B00] hover:bg-[#FF7A00] text-white text-xs font-bold transition-all shadow-md cursor-pointer"
                     id="no-jobs-reset-btn"
                   >
                     Clear All Filters
@@ -350,7 +404,7 @@ export default function App() {
                 Everything. Delivered. Powered by People.
               </h2>
               <p className="text-sm text-slate-300 max-w-2xl mx-auto">
-                We are building India's fastest quick commerce ecosystem. Here's why 10,000+ team members and partner captains love working at BuyQK.
+                We are building India's fastest quick commerce ecosystem. Here's why team members and partner leads love working at BuyQK.
               </p>
             </div>
 
@@ -359,11 +413,11 @@ export default function App() {
               
               <div className="p-6 rounded-2xl bg-[#141C2E] border border-[#2A364F] space-y-3">
                 <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
-                  <Sparkles className="w-6 h-6" />
+                  <Zap className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white">Innovation First</h3>
+                <h3 className="text-lg font-bold text-white">Fast & Scalable Infrastructure</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  We deploy cutting-edge AI (Ask QK AI) for real-time order dispatch, intelligent demand forecasting, and seamless customer resolution.
+                  We run real-time order dispatching and intelligent inventory routing for 10-minute quick commerce across major Indian hubs.
                 </p>
               </div>
 
@@ -373,7 +427,7 @@ export default function App() {
                 </div>
                 <h3 className="text-lg font-bold text-white">People & Partner Care</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Comprehensive health insurance for family, generous shift allowances, safety gear for delivery captains, and flexible WFH setups.
+                  Comprehensive health insurance for family, generous shift allowances, and flexible remote & rotational shift benefits.
                 </p>
               </div>
 
@@ -383,7 +437,7 @@ export default function App() {
                 </div>
                 <h3 className="text-lg font-bold text-white">Rapid Career Growth</h3>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Fast-track internal progression for top performers from Customer Experience Specialist to Hub Manager & Operations Lead.
+                  Fast-track internal progression for top performers from Customer Support Specialist to Operations Lead & Hub Director.
                 </p>
               </div>
 
@@ -395,7 +449,7 @@ export default function App() {
                 <span className="text-xs font-bold text-[#FF6B00] uppercase tracking-wider">Kolkata CTPS Drive</span>
                 <h3 className="text-xl font-bold text-white">Join 150+ Customer Experience Specialists</h3>
                 <p className="text-xs text-slate-300 max-w-xl">
-                  Become the voice of BuyQK across India. Handle real-time customer and partner merchant queries with night shift allowances and full WFH support.
+                  Become the voice of BuyQK. Support customers and merchant partners with 24/7 rotational shift benefits and full training.
                 </p>
               </div>
               <button
@@ -403,10 +457,10 @@ export default function App() {
                   setActiveTab('openings');
                   handleFilterChange('department', 'Customer Trust & Partner Support');
                 }}
-                className="px-6 py-3 rounded-full bg-[#FF6B00] hover:bg-[#FF7A00] text-white font-bold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap"
+                className="px-6 py-3 rounded-full bg-[#FF6B00] hover:bg-[#FF7A00] text-white font-bold text-xs shadow-lg flex items-center gap-2 whitespace-nowrap cursor-pointer"
                 id="culture-apply-ctps-btn"
               >
-                <span>View CTPS Roles</span>
+                <span>View Open CTPS Roles</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -418,23 +472,6 @@ export default function App() {
         {activeTab === 'faqs' && <FaqSection />}
 
       </main>
-
-      {/* Auth Modal (Create Account / Login / Admin Login) */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onAuthSuccess={handleAuthSuccess}
-        pendingJobToApply={pendingJobToApply}
-        initialMode={authInitialMode}
-      />
-
-      {/* Admin Control Panel Modal */}
-      <AdminPanelModal
-        isOpen={isAdminPanelOpen}
-        onClose={() => setIsAdminPanelOpen(false)}
-        jobs={jobs}
-        onJobsUpdated={fetchJobs}
-      />
 
       {/* Job Modals Collection */}
       <JobDetailsModal
@@ -468,17 +505,9 @@ export default function App() {
         }}
       />
 
-      <AiResumeMatcherModal
-        isOpen={isAiMatcherOpen}
-        onClose={() => setIsAiMatcherOpen(false)}
-        jobs={jobs}
-        onSelectRoleToApply={(j) => handleApplyNow(j)}
-      />
-
       {/* Footer */}
       <Footer />
 
     </div>
   );
 }
-

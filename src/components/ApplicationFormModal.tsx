@@ -8,10 +8,8 @@ import {
   Mail, 
   Phone, 
   MapPin, 
-  Briefcase, 
   GraduationCap, 
   Laptop, 
-  Sparkles,
   AlertCircle,
   Clock,
   Send
@@ -33,17 +31,17 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
 }) => {
   if (!job) return null;
 
-  // Form State
+  // Form State - start clean unless logged in user details exist
   const [fullName, setFullName] = useState(currentUser?.fullName || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [phone, setPhone] = useState(currentUser?.phone || '');
-  const [city, setCity] = useState(currentUser?.city || (job.location !== 'Remote / WFH' ? job.location : 'Kolkata'));
+  const [city, setCity] = useState(currentUser?.city || '');
   const [pinCode, setPinCode] = useState('');
   const [gender, setGender] = useState('Male');
-  const [qualification, setQualification] = useState(currentUser?.highestQualification || (job.education.includes('Graduate') ? 'Graduate / Bachelor Degree' : 'Post Graduate'));
-  const [experienceYears, setExperienceYears] = useState(currentUser?.experienceYears || job.experience);
+  const [qualification, setQualification] = useState(currentUser?.highestQualification || 'Graduate / Bachelor Degree');
+  const [experienceYears, setExperienceYears] = useState(currentUser?.experienceYears || 'Fresher (0 yrs)');
   const [currentCompany, setCurrentCompany] = useState(currentUser?.currentCompany || '');
-  const [skills, setSkills] = useState(currentUser?.skills?.join(', ') || (job.department.includes('Trust') ? 'Customer Communication, Hindi, English, Typing Speed' : 'Problem Solving, Teamwork'));
+  const [skills, setSkills] = useState(currentUser?.skills?.join(', ') || '');
   const [preferredShift, setPreferredShift] = useState(currentUser?.preferredShift || job.shiftType);
   const [preferredLocation, setPreferredLocation] = useState(job.location);
   const [hasLaptopAndWifi, setHasLaptopAndWifi] = useState(currentUser?.hasLaptopAndWifi ?? true);
@@ -52,7 +50,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
   
   // Resume upload state
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeFileName, setResumeFileName] = useState(currentUser?.resumeFileName || 'My_Updated_CV.pdf');
+  const [resumeFileName, setResumeFileName] = useState(currentUser?.resumeFileName || '');
   const [resumeText, setResumeText] = useState(currentUser?.resumeText || '');
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,7 +72,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
     }
   }, [currentUser]);
 
-  // Handle simulated file selection
+  // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -97,7 +95,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
       return;
     }
     if (!phone.trim() || phone.length < 10) {
-      setErrorMessage('Please enter a valid 10-digit mobile number.');
+      setErrorMessage('Please enter a valid mobile number.');
       return;
     }
     if (!city.trim()) {
@@ -112,49 +110,9 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
     setIsSubmitting(true);
     setErrorMessage('');
 
-    try {
-      const payload = {
-        jobId: job.id,
-        jobTitle: job.title,
-        reqId: job.reqId,
-        department: job.department,
-        fullName,
-        email,
-        phone,
-        city,
-        state: job.state,
-        pinCode,
-        gender,
-        highestQualification: qualification,
-        experienceYears,
-        currentCompany,
-        skills: skills.split(',').map(s => s.trim()).filter(Boolean),
-        preferredShift,
-        preferredLocation,
-        hasLaptopAndWifi,
-        noticePeriod,
-        expectedCtc,
-        resumeFileName,
-        resumeText: resumeText || `${fullName} - ${qualification} with skills in ${skills}`
-      };
-
-      const res = await fetch('/api/careers/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (data.success && data.application) {
-        onSuccess(data.application);
-      } else {
-        setErrorMessage(data.error || 'Failed to register application. Please check your fields.');
-      }
-    } catch (err: any) {
-      console.error('Submit Application Error:', err);
-      // Fallback client registration if network glitch
-      const fallbackApp: JobApplication = {
+    // Create application object directly in client
+    setTimeout(() => {
+      const newApp: JobApplication = {
         id: `app-${Date.now()}`,
         regId: `BUYQK-2026-REG-${Math.floor(100000 + Math.random() * 900000)}`,
         jobId: job.id,
@@ -178,14 +136,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
         noticePeriod,
         expectedCtc,
         resumeFileName,
-        resumeText,
+        resumeText: resumeText || `${fullName} - ${qualification} - Skills: ${skills}`,
         status: 'Submitted',
         appliedAt: new Date().toISOString()
       };
-      onSuccess(fallbackApp);
-    } finally {
+
       setIsSubmitting(false);
-    }
+      onSuccess(newApp);
+    }, 400);
   };
 
   return (
@@ -205,7 +163,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                 <span className="px-2 py-0.5 rounded bg-[#141C2E] border border-[#2A364F] text-[10px] font-mono text-[#FF6B00] font-bold">
                   {job.reqId}
                 </span>
-                <span className="text-xs text-slate-400">Virtual Application Form</span>
+                <span className="text-xs text-slate-400">Application Form</span>
               </div>
               <h2 className="text-lg font-bold text-white truncate max-w-md">
                 Apply for {job.title}
@@ -283,7 +241,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
               {/* Mobile Phone */}
               <div className="space-y-1">
                 <label className="text-xs text-slate-300 font-semibold flex items-center gap-1">
-                  Mobile Number (10 Digits) <span className="text-rose-400">*</span>
+                  Mobile Number <span className="text-rose-400">*</span>
                 </label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -356,7 +314,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                   <option value="Graduate / Bachelor Degree">Graduate / Bachelor Degree (B.A., B.Sc., B.Com, B.Tech, BBA)</option>
                   <option value="Post Graduate / Master Degree">Post Graduate / Master Degree (M.A., M.Sc., MBA, M.Tech)</option>
                   <option value="Diploma Holder (10+3 / 12+2)">Diploma Holder (10+3 / 12+2)</option>
-                  <option value="Under Graduate / 12th Pass">Under Graduate / 12th Pass (Final Year Result Awaited)</option>
+                  <option value="Under Graduate / 12th Pass">Under Graduate / 12th Pass</option>
                 </select>
               </div>
 
@@ -381,7 +339,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                 <label className="text-xs text-slate-300 font-semibold">Current / Last Employer (Optional)</label>
                 <input
                   type="text"
-                  placeholder="e.g. Wipro / Amazon / Fresh Graduate"
+                  placeholder="e.g. Previous Company Name"
                   value={currentCompany}
                   onChange={(e) => setCurrentCompany(e.target.value)}
                   className="w-full bg-[#0B0F19] border border-[#2A364F] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FF6B00]"
@@ -395,7 +353,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. English, Hindi, Customer Support, Typing, React"
+                  placeholder="e.g. Customer Support, English, Hindi, React"
                   value={skills}
                   onChange={(e) => setSkills(e.target.value)}
                   className="w-full bg-[#0B0F19] border border-[#2A364F] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FF6B00]"
@@ -416,7 +374,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                 >
                   <option value="Rotational (24/7)">Rotational 24/7 (5 Days Work, 2 Rotational Offs)</option>
                   <option value="Day Shift">Day Shift Only (9:00 AM - 6:00 PM)</option>
-                  <option value="Night Shift">Night Shift Only (With Night Allowance)</option>
+                  <option value="Night Shift">Night Shift Only</option>
                 </select>
               </div>
 
@@ -438,14 +396,14 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
             </div>
           </div>
 
-          {/* Section 3: WFH Equipment Readiness & Consent */}
+          {/* Section 3: WFH Equipment Readiness */}
           <div className="space-y-2 p-3.5 rounded-xl bg-[#0B0F19] border border-[#2A364F]">
             <div className="flex items-start gap-3">
               <Laptop className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <h4 className="text-xs font-bold text-white">Work From Home / Virtual Readiness Check</h4>
+                <h4 className="text-xs font-bold text-white">Work From Home / Remote Readiness</h4>
                 <p className="text-[11px] text-slate-400">
-                  For WFH roles, candidates must have a personal laptop/desktop with minimum 8GB RAM, Windows 10/11, and stable Wi-Fi.
+                  For WFH roles, candidates should have a laptop/desktop with stable internet.
                 </p>
                 <label className="flex items-center gap-2 pt-1 cursor-pointer">
                   <input
@@ -456,7 +414,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                     id="applicant-wfh-checkbox"
                   />
                   <span className="text-xs text-slate-200 font-medium">
-                    Yes, I have a laptop/desktop and high-speed Wi-Fi connection.
+                    I have a working computer and stable Wi-Fi connection.
                   </span>
                 </label>
               </div>
@@ -512,33 +470,30 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
                 {resumeFileName ? (
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5">
-                      <span>Uploaded File:</span>
+                      <span>Selected File:</span>
                       <span className="underline">{resumeFileName}</span>
                     </p>
-                    <p className="text-[11px] text-slate-400">Click or drag to replace resume (PDF / DOCX)</p>
+                    <p className="text-[11px] text-slate-400">Click to change resume file</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-white">
-                      Drag & Drop your Resume here or <span className="text-[#FF6B00]">Browse Files</span>
+                      Drag & Drop your Resume or <span className="text-[#FF6B00]">Browse Files</span>
                     </p>
-                    <p className="text-[11px] text-slate-400">Supports PDF, DOCX, TXT (Max size 10MB)</p>
+                    <p className="text-[11px] text-slate-400">Supports PDF, DOCX, TXT</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Optional Paste Bio Text */}
+            {/* Optional Summary */}
             <div className="space-y-1 pt-1">
-              <label className="text-xs text-slate-400 font-medium flex items-center justify-between">
-                <span>Or Paste Summary / Key Work Highlights (Optional for QK AI Screening):</span>
-                <span className="text-[10px] text-purple-400 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> Auto-Analyzed by Gemini
-                </span>
+              <label className="text-xs text-slate-400 font-medium">
+                Additional Cover Note / Career Highlights (Optional):
               </label>
               <textarea
                 rows={3}
-                placeholder="Paste key achievements, previous job roles, or cover note here..."
+                placeholder="Briefly state your achievements or previous experience..."
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
                 className="w-full bg-[#0B0F19] border border-[#2A364F] rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-[#FF6B00]"
@@ -551,7 +506,7 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
           {/* Declaration Checkbox */}
           <div className="pt-2 border-t border-[#2A364F] text-xs text-slate-400 space-y-2">
             <p className="leading-relaxed text-[11px]">
-              By clicking "Submit Application", I confirm that all details provided above are authentic to the best of my knowledge and I agree to participate in BuyQK's virtual recruitment process.
+              By clicking "Submit Application", I confirm that all details provided above are authentic to the best of my knowledge and I agree to participate in BuyQK's recruitment process.
             </p>
           </div>
 
@@ -575,12 +530,12 @@ export const ApplicationFormModal: React.FC<ApplicationFormModalProps> = ({
               {isSubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Registering Application...</span>
+                  <span>Submitting Application...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>Submit Web Application</span>
+                  <span>Submit Application</span>
                 </>
               )}
             </button>
