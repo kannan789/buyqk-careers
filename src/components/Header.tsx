@@ -1,0 +1,308 @@
+import React, { useState } from 'react';
+import { 
+  MapPin, 
+  Search, 
+  Briefcase, 
+  FileCheck, 
+  ChevronDown, 
+  Menu, 
+  X,
+  HelpCircle,
+  Building2,
+  User,
+  ShieldCheck,
+  LogOut,
+  UserPlus
+} from 'lucide-react';
+import { LOCATIONS } from '../data/jobsData';
+import { UserAccount } from '../types';
+
+interface HeaderProps {
+  selectedLocation: string;
+  onSelectLocation: (loc: string) => void;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  onOpenTracker: () => void;
+  applicationsCount: number;
+  activeTab: 'openings' | 'culture' | 'faqs';
+  setActiveTab: (tab: 'openings' | 'culture' | 'faqs') => void;
+  currentUser: UserAccount | null;
+  onNavigateAuth: (mode?: 'login' | 'register' | 'admin') => void;
+  onNavigateAdminPanel: () => void;
+  onLogout: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  selectedLocation,
+  onSelectLocation,
+  searchQuery,
+  onSearchChange,
+  onOpenTracker,
+  applicationsCount,
+  activeTab,
+  setActiveTab,
+  currentUser,
+  onNavigateAuth,
+  onNavigateAdminPanel,
+  onLogout
+}) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  return (
+    <header className="sticky top-0 z-40 bg-[#0B0F19]/95 backdrop-blur-md border-b border-[#1E293B] text-white">
+      {/* Top Banner Bar - Brand & Location Bar matching BuyQK UI */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
+        <div className="flex items-center justify-between gap-4">
+          
+          {/* Logo & Location Header */}
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setActiveTab('openings')} 
+              className="flex items-center gap-2 text-left group"
+            >
+              <div className="flex flex-col">
+                <div className="flex items-center text-2xl font-black tracking-tight font-sans">
+                  <span className="text-white">Buy</span>
+                  <span className="text-[#FF6B00] italic font-serif ml-0.5 tracking-wide">
+                    QK
+                  </span>
+                </div>
+                <span className="text-[9px] uppercase tracking-wider text-slate-400 font-medium -mt-1">
+                  Everything. Delivered.
+                </span>
+              </div>
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold tracking-widest bg-[#FF6B00]/15 text-[#FF6B00] border border-[#FF6B00]/30 uppercase ml-2">
+                Careers
+              </span>
+            </button>
+
+            {/* Location Selector Badge */}
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141C2E] border border-[#2A364F] text-xs text-slate-300 hover:border-[#FF6B00]/50 transition-colors cursor-pointer group">
+              <MapPin className="w-3.5 h-3.5 text-[#FF6B00] shrink-0" />
+              <select
+                value={selectedLocation}
+                onChange={(e) => onSelectLocation(e.target.value)}
+                className="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1"
+                id="header-location-select"
+              >
+                {LOCATIONS.map((loc) => (
+                  <option key={loc} value={loc} className="bg-[#141C2E] text-slate-200">
+                    {loc === 'All Locations' ? 'Koramangala, Bengaluru (All India)' : loc}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white" />
+            </div>
+          </div>
+
+          {/* Quick Search Input (Desktop) */}
+          <div className="hidden lg:flex items-center flex-1 max-w-md mx-4">
+            <div className="relative w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search openings by role, skill (e.g. Customer Support, React, Kolkata)..."
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                className="w-full bg-[#141C2E] border border-[#2A364F] rounded-full pl-10 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#FF6B00] focus:ring-1 focus:ring-[#FF6B00] transition-all"
+                id="header-search-input"
+              />
+            </div>
+          </div>
+
+          {/* Auth / Account Navigation Bar */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            
+            {currentUser ? (
+              <div className="flex items-center gap-2">
+                {currentUser.role === 'admin' ? (
+                  <button
+                    onClick={onNavigateAdminPanel}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/50 text-xs font-bold transition-all"
+                    id="open-admin-panel-btn"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    <span>Recruiter Admin Panel</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={onOpenTracker}
+                    className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#141C2E] border border-emerald-500/50 text-emerald-300 text-xs font-bold transition-all"
+                    id="my-applications-btn"
+                  >
+                    <User className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="max-w-[120px] truncate">{currentUser.fullName}</span>
+                    {applicationsCount > 0 && (
+                      <span className="px-1.5 py-0.2 text-[10px] font-bold bg-[#FF6B00] text-white rounded-full">
+                        {applicationsCount}
+                      </span>
+                    )}
+                  </button>
+                )}
+
+                <button
+                  onClick={onLogout}
+                  title="Log Out"
+                  className="p-1.5 rounded-full bg-[#141C2E] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-[#2A364F] transition-colors"
+                  id="logout-btn"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onNavigateAuth('login')}
+                  className="px-3 py-1.5 rounded-full bg-[#141C2E] hover:bg-[#1E293B] border border-[#2A364F] text-slate-200 text-xs font-semibold transition-all"
+                  id="login-header-btn"
+                >
+                  Log In
+                </button>
+
+                <button
+                  onClick={() => onNavigateAuth('register')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF6B00] hover:bg-[#FF7A00] text-white text-xs font-bold shadow-md transition-all"
+                  id="create-account-header-btn"
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Create Account</span>
+                </button>
+
+                <button
+                  onClick={() => onNavigateAuth('admin')}
+                  className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#141C2E] hover:bg-[#1E293B] border border-purple-500/40 text-purple-300 text-xs font-semibold"
+                  id="admin-login-header-btn"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Recruiter Login</span>
+                </button>
+              </div>
+            )}
+
+            {/* Mobile Hamburger Menu Toggle */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-1.5 rounded-lg bg-[#141C2E] border border-[#2A364F] text-slate-300 md:hidden"
+              id="mobile-menu-toggle"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar for Mobile/Tablet */}
+        <div className="mt-2.5 lg:hidden">
+          <div className="relative w-full">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search openings by role, department, or location..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full bg-[#141C2E] border border-[#2A364F] rounded-full pl-10 pr-4 py-2 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-[#FF6B00]"
+              id="mobile-search-input"
+            />
+          </div>
+        </div>
+
+        {/* Secondary Navigation Bar */}
+        <nav className="mt-3 pt-2 border-t border-[#1E293B] flex items-center justify-between text-xs overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-6 font-medium whitespace-nowrap">
+            <button
+              onClick={() => setActiveTab('openings')}
+              className={`flex items-center gap-1.5 py-1 border-b-2 transition-colors ${
+                activeTab === 'openings'
+                  ? 'border-[#FF6B00] text-[#FF6B00] font-bold'
+                  : 'border-transparent text-slate-300 hover:text-white'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Job Openings</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('culture')}
+              className={`flex items-center gap-1.5 py-1 border-b-2 transition-colors ${
+                activeTab === 'culture'
+                  ? 'border-[#FF6B00] text-[#FF6B00] font-bold'
+                  : 'border-transparent text-slate-300 hover:text-white'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Life at BuyQK</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('faqs')}
+              className={`flex items-center gap-1.5 py-1 border-b-2 transition-colors ${
+                activeTab === 'faqs'
+                  ? 'border-[#FF6B00] text-[#FF6B00] font-bold'
+                  : 'border-transparent text-slate-300 hover:text-white'
+              }`}
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Virtual Hiring & FAQs</span>
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-3 text-slate-400 text-[11px]">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Virtual Hiring Active Across India
+            </span>
+          </div>
+        </nav>
+      </div>
+
+      {/* Mobile Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden bg-[#0D111D] border-b border-[#1E293B] px-4 py-4 space-y-3">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#141C2E] text-slate-300 text-xs">
+            <MapPin className="w-4 h-4 text-[#FF6B00]" />
+            <span className="font-medium text-white">Location:</span>
+            <select
+              value={selectedLocation}
+              onChange={(e) => {
+                onSelectLocation(e.target.value);
+                setIsMobileMenuOpen(false);
+              }}
+              className="bg-transparent text-slate-200 focus:outline-none flex-1"
+            >
+              {LOCATIONS.map((loc) => (
+                <option key={loc} value={loc} className="bg-[#141C2E]">
+                  {loc}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              onClick={() => {
+                onOpenTracker();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg bg-[#141C2E] border border-[#2A364F] text-slate-200 text-xs font-semibold"
+            >
+              <FileCheck className="w-4 h-4 text-[#FF6B00]" />
+              <span>Track Applications</span>
+            </button>
+
+            {!currentUser && (
+              <button
+                onClick={() => {
+                  onNavigateAuth('register');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-1.5 p-2.5 rounded-lg bg-[#FF6B00] text-white text-xs font-semibold"
+              >
+                <UserPlus className="w-4 h-4" />
+                <span>Create Account</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+};
